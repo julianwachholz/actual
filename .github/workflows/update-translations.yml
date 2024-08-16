@@ -1,0 +1,44 @@
+name: Update translation files
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  TRANSLATIONS_REPO: ${{ vars.TRANSLATIONS_REPO || 'actualbudget/translations' }}
+
+on:
+  push:
+    branches:
+      - master
+      # TODO remove after testing
+      - i18n-workflow
+
+jobs:
+  update-translations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up environment
+        uses: ./.github/actions/setup
+
+      - name: 'Checkout translations repository'
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.TRANSLATIONS_REPO }}
+          path: packages/desktop-client/src/locale
+
+      - name: 'Update translation message files'
+        run: yarn generate:i18n
+
+      - name: 'Commit and push changes'
+        # Note that this will only update the en.json file
+        # as it's the source language files used in Weblate.
+        # TODO: Ignore failure if no changes
+        run: |
+          cd packages/desktop-client/src/locale
+          git config user.name "Github Actions Bot"
+          git config user.email "<>"
+          git add en.json
+          git commit -m "Update translation message files"
+          git push origin main
